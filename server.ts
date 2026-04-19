@@ -49,10 +49,10 @@ app.prepare().then(() => {
         }
 
         dgSocket = await deepgramClient.listen.v1.connect({
-          model: "nova-2",
-          interimResults: true,
+          model: "nova-3",
+          interim_results: true,
           endpointing: false,                    // Keep original — 300ms value caused 400
-          smartFormat: false,                   // #1: Skip punctuation/capitalization post-processing
+          smart_format: false,                   // #1: Skip punctuation/capitalization post-processing
           encoding: "opus",
           container: "webm",
         });
@@ -64,7 +64,7 @@ app.prepare().then(() => {
           console.log("[PROXY] Deepgram WebSocket OPENED for client:", socket.id);
         });
 
-        dgSocket.on("message", (message: Deepgram.listen.V1Socket.Response) => {
+        dgSocket.on("message", (message: any) => {
           if (message.type === "Results") {
             const transcript = message.channel.alternatives[0]?.transcript ?? "";
             const isFinal = message.is_final ?? false;
