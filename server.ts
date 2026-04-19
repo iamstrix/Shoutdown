@@ -37,76 +37,80 @@ app.prepare().then(() => {
     let dgSocket: Awaited<ReturnType<(typeof deepgramClient.listen.v1)["connect"]>> | null = null;
     let chunksReceived = 0;
 
-    try {
-      // 1. Initialize the connection object
-      dgSocket = await deepgramClient.listen.v1.connect({
-        model: "nova-2",
-        interim_results: true,
-        endpointing: false,
-        smart_format: true,
-        encoding: "opus",
-        container: "webm",
-        Authorization: `Token ${DEEPGRAM_API_KEY}`,
-      });
+    // Wait for the client to send its word pool before connecting to Deepgram
+    socket.on("init", async (payload: { keywords?: string[] }) => {
+      const keywords = payload.keywords ?? [];
+      console.log(`[PROXY] Received init with ${keywords.length} keywords`);
 
-      // SDK v5: We must explicitly call connect() on the socket wrapper to start the handshake
-      dgSocket.connect();
+      try {
+        // Build Deepgram connection config with latency optimizations
+        if (keywords.length > 0) {
+          console.log(`[PROXY] Keywords received (not sent to Deepgram — may require paid tier):`, keywords.slice(0, 5));
+        }
 
-      // 2. Setup handlers IMMEDIATELY
-      dgSocket.on("open", () => {
-        console.log("[PROXY] Deepgram WebSocket OPENED for client:", socket.id);
-      });
+        dgSocket = await deepgramClient.listen.v1.connect({
+          model: "nova-2",
+          interim_results: true,
+          endpointing: false,                    // Keep original — 300ms value caused 400
+          smart_format: false,                   // #1: Skip punctuation/capitalization post-processing
+          encoding: "opus",
+          container: "webm",
+          Authorization: `Token ${DEEPGRAM_API_KEY}`,
+        });
 
-      dgSocket.on("message", (message: Deepgram.listen.V1Socket.Response) => {
-        if (message.type === "Results") {
-          const transcript = message.channel.alternatives[0]?.transcript ?? "";
-          const isFinal = message.is_final ?? false;
-          if (transcript) {
-            console.log(`[PROXY] Transcript: "${transcript}" (final: ${isFinal})`);
-            socket.emit("transcript", { text: transcript, isFinal });
+        // SDK v5: Explicitly start the handshake
+        dgSocket.connect();
+
+        dgSocket.on("open", () => {
+          console.log("[PROXY] Deepgram WebSocket OPENED for client:", socket.id);
+        });
+
+        dgSocket.on("message", (message: Deepgram.listen.V1Socket.Response) => {
+          if (message.type === "Results") {
+            const transcript = message.channel.alternatives[0]?.transcript ?? "";
+            const isFinal = message.is_final ?? false;
+            if (transcript) {
+              console.log(`[PROXY] Transcript: "${transcript}" (final: ${isFinal})`);
+              socket.emit("transcript", { text: transcript, isFinal });
+            }
           }
-        }
-      });
+        });
 
-      dgSocket.on("error", (err: Error) => {
-        console.error("[PROXY] Deepgram Error:", err);
-        socket.emit("error", "Deepgram processing error");
-      });
+        dgSocket.on("error", (err: Error) => {
+          console.error("[PROXY] Deepgram Error:", err);
+          socket.emit("error", "Deepgram processing error");
+        });
 
-      dgSocket.on("close", (event: any) => {
-        console.log(`🚨 [PROXY] Deepgram Hung Up! Code: ${event?.code} Reason: ${event?.reason}`);
-      });
+        dgSocket.on("close", (event: any) => {
+          console.log(`🚨 [PROXY] Deepgram Hung Up! Code: ${event?.code} Reason: ${event?.reason}`);
+        });
 
-      // 3. Explicitly wait for the socket to be ready before accepting client data
-      console.log("[PROXY] Waiting for Deepgram to be ready...");
-      await dgSocket.waitForOpen();
-      console.log("[PROXY] Deepgram is READY. Signaling client...");
-      
-      // Signal client that it's safe to start sending audio (ensures header preservation)
-      socket.emit("proxy-ready");
+        console.log("[PROXY] Waiting for Deepgram to be ready...");
+        await dgSocket.waitForOpen();
+        console.log("[PROXY] Deepgram is READY. Signaling client...");
 
-      // 4. Now listen for client audio data
-      socket.on("audio-chunk", (data: any) => {
-        if (!dgSocket || dgSocket.readyState !== 1) return;
+        // Signal client that it's safe to start sending audio
+        socket.emit("proxy-ready");
 
-        // Validation: Verify we are receiving raw binary Buffers
-        const isBuffer = Buffer.isBuffer(data);
-        const dataLength = isBuffer ? data.length : (data.byteLength || 0);
+        // Now listen for client audio data
+        socket.on("audio-chunk", (data: any) => {
+          if (!dgSocket || dgSocket.readyState !== 1) return;
 
-        if (chunksReceived === 0) {
-          console.log(`[PROXY] Receiving first chunk. Type: ${typeof data}, isBuffer: ${isBuffer}, Size: ${dataLength} bytes`);
-        }
-        
-        chunksReceived++;
-        
-        // Ensure we send as raw Buffer/Uint8Array
-        dgSocket.sendMedia(data);
-      });
+          if (chunksReceived === 0) {
+            const isBuffer = Buffer.isBuffer(data);
+            const dataLength = isBuffer ? data.length : (data.byteLength || 0);
+            console.log(`[PROXY] First chunk: type=${typeof data}, isBuffer=${isBuffer}, size=${dataLength}b`);
+          }
 
-    } catch (err) {
-      console.error("[PROXY] Setup failed:", err);
-      socket.emit("error", "Failed to initialize transcription proxy");
-    }
+          chunksReceived++;
+          dgSocket.sendMedia(data);
+        });
+
+      } catch (err) {
+        console.error("[PROXY] Setup failed:", err);
+        socket.emit("error", "Failed to initialize transcription proxy");
+      }
+    });
 
     socket.on("disconnect", () => {
       console.log("[PROXY] Client disconnected:", socket.id);

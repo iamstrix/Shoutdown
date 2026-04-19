@@ -13,10 +13,12 @@ export class SpeechRecognitionEngine {
   private onStatus: StatusCallback;
   private currentStatus: SpeechStatus = "none";
   private isRunning = false;
+  private keywords: string[];
 
-  constructor(onTranscript: TranscriptCallback, onStatus: StatusCallback) {
+  constructor(onTranscript: TranscriptCallback, onStatus: StatusCallback, keywords: string[] = []) {
     this.onTranscript = onTranscript;
     this.onStatus = onStatus;
+    this.keywords = keywords;
   }
 
   static isSupported(): boolean {
@@ -44,7 +46,9 @@ export class SpeechRecognitionEngine {
       this.socket = io();
 
       this.socket.on("connect", () => {
-        console.log("[SPEECH] Socket.io connected, awaiting proxy-ready...");
+        console.log("[SPEECH] Socket.io connected, sending keywords and awaiting proxy-ready...");
+        // Send the word pool to the server so Deepgram can boost these terms
+        this.socket!.emit("init", { keywords: this.keywords });
       });
 
       // KEY FIX: Only start the recorder after the proxy tells us it's fully connected to Deepgram.
@@ -86,7 +90,7 @@ export class SpeechRecognitionEngine {
       console.log("[SPEECH] Requesting microphone access...");
       this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       console.log("[SPEECH] Microphone access granted");
-      
+
       // We use webm/opus for standard streaming compatibility
       this.mediaRecorder = new MediaRecorder(this.stream, {
         mimeType: "audio/webm; codecs=opus",
@@ -104,9 +108,9 @@ export class SpeechRecognitionEngine {
         this.setStatus("error");
       };
 
-      this.mediaRecorder.start(250); // Timeslice: 250ms chunks as requested
-      console.log("[SPEECH] MediaRecorder started (250ms intervals)");
-      
+      this.mediaRecorder.start(100); // Timeslice: 250ms chunks as requested. Changed to 100ms for now
+      console.log("[SPEECH] MediaRecorder started (100ms intervals)");
+
       this.isRunning = true;
       this.setStatus("active");
     } catch (err) {
@@ -119,7 +123,7 @@ export class SpeechRecognitionEngine {
     if (this.mediaRecorder) {
       try {
         this.mediaRecorder.stop();
-      } catch (e) {}
+      } catch (e) { }
       this.mediaRecorder = null;
     }
 

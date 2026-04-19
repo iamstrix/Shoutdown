@@ -70,7 +70,7 @@ export const DEFAULT_CONFIG: GameConfig = {
   baseFallSpeed: 0.6,
   baseSpawnInterval: 2500,
   difficultyRampRate: 0.00004,
-  fuzzyThreshold: 0.35,
+  fuzzyThreshold: 0.25,
 };
 
 export const EXAMPLE_WORDS = [

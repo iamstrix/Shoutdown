@@ -66,7 +66,8 @@ export default function GameCanvas({ wordPool, onGameOver, onBack }: GameCanvasP
         (status) => {
           setSpeechStatus(status);
           engine.setMicActive(status === "active");
-        }
+        },
+        wordPool // Pass the game's word pool as Deepgram keywords
       );
       speechRef.current = speech;
       speech.start();
