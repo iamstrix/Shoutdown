@@ -15,6 +15,8 @@ export default function Home() {
   const [screen, setScreen] = useState<GameScreen>("setup");
   const [wordInput, setWordInput] = useState("");
   const [wordPool, setWordPool] = useState<string[]>([]);
+  const [topic, setTopic] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const parsedWords = wordInput
     .split(",")
@@ -31,6 +33,29 @@ export default function Home() {
 
   const handleFillExample = () => {
     setWordInput(EXAMPLE_WORDS.join(", "));
+  };
+
+  const handleGenerateWords = async () => {
+    if (!topic || isGenerating) return;
+    setIsGenerating(true);
+    try {
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topic }),
+      });
+      const data = await res.json();
+      if (data.words) {
+        setWordInput(data.words);
+      } else if (data.error) {
+        alert(`Error: ${data.error}`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Failed to generate words. Check console.");
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleBack = useCallback(() => {
@@ -52,6 +77,31 @@ export default function Home() {
     <div style={{ maxWidth: "600px", margin: "2rem auto", padding: "1rem" }}>
       <h1>SHOUTDOWN</h1>
       <p>Voice-controlled words game. Speak the words to clear them.</p>
+
+      <div style={{ marginBottom: "1rem" }}>
+        <label htmlFor="topic-input" style={{ display: "block", marginBottom: "0.5rem" }}>
+          Generate from Topic:
+        </label>
+        <div style={{ display: "flex", gap: "0.5rem" }}>
+          <input
+            id="topic-input"
+            type="text"
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+            placeholder="e.g. Space, Cooking"
+            style={{ flex: 1, padding: "0.5rem", border: "1px solid #ccc" }}
+            onKeyDown={(e) => e.key === "Enter" && handleGenerateWords()}
+          />
+          <button
+            type="button"
+            onClick={handleGenerateWords}
+            disabled={!topic || isGenerating}
+            style={{ fontWeight: "normal" }}
+          >
+            {isGenerating ? "Generating..." : "Generate"}
+          </button>
+        </div>
+      </div>
 
       <div style={{ marginBottom: "1rem" }}>
         <label htmlFor="word-pool" style={{ display: "block", marginBottom: "0.5rem" }}>
