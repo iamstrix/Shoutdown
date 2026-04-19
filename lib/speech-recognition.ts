@@ -1,7 +1,8 @@
 // ─── Web Speech API Wrapper ──────────────────────────────────────────────────
 
+export type SpeechStatus = "none" | "starting" | "active" | "error" | "reconnecting";
 export type TranscriptCallback = (transcript: string, isFinal: boolean) => void;
-export type StatusCallback = (active: boolean) => void;
+export type StatusCallback = (status: SpeechStatus) => void;
 
 // ─── Web Speech API Type Declarations ────────────────────────────────────────
 // These types aren't included in TypeScript's lib.dom by default
@@ -58,6 +59,10 @@ declare global {
   }
 }
 
+const MIN_RESTART_DELAY = 300;
+const MAX_RESTART_DELAY = 10000;
+const BACKOFF_FACTOR = 1.5;
+
 export class SpeechRecognitionEngine {
   private recognition: SpeechRecognitionInstance | null = null;
   private onTranscript: TranscriptCallback;
@@ -65,6 +70,8 @@ export class SpeechRecognitionEngine {
   private isRunning = false;
   private shouldRestart = true;
   private restartTimeout: ReturnType<typeof setTimeout> | null = null;
+  private restartDelay = MIN_RESTART_DELAY;
+  private currentStatus: SpeechStatus = "none";
 
   constructor(onTranscript: TranscriptCallback, onStatus: StatusCallback) {
     this.onTranscript = onTranscript;
@@ -79,94 +86,103 @@ export class SpeechRecognitionEngine {
     return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
   }
 
+  private setStatus(status: SpeechStatus) {
+    if (this.currentStatus !== status) {
+      this.currentStatus = status;
+      this.onStatus(status);
+    }
+  }
+
   /**
    * Start continuous speech recognition.
    */
   start(): void {
     if (!SpeechRecognitionEngine.isSupported()) {
       console.warn("Speech recognition is not supported in this browser.");
-      this.onStatus(false);
+      this.setStatus("none");
       return;
+    }
+
+    if (this.isRunning) {
+      return; // Already running or starting
     }
 
     const SpeechRecognitionAPI =
       window.SpeechRecognition || window.webkitSpeechRecognition;
 
-    this.recognition = new SpeechRecognitionAPI();
-    this.recognition.continuous = true;
-    this.recognition.interimResults = true;
-    this.recognition.lang = "en-US";
-    this.recognition.maxAlternatives = 3;
+    try {
+      this.recognition = new SpeechRecognitionAPI();
+      this.recognition.continuous = true;
+      this.recognition.interimResults = true;
+      this.recognition.lang = "en-US";
+      this.recognition.maxAlternatives = 3;
 
-    this.shouldRestart = true;
+      this.shouldRestart = true;
+      this.setStatus(this.restartDelay > MIN_RESTART_DELAY ? "reconnecting" : "starting");
 
-    this.recognition.onstart = () => {
-      this.isRunning = true;
-      this.onStatus(true);
-    };
+      this.recognition.onstart = () => {
+        this.isRunning = true;
+        this.restartDelay = MIN_RESTART_DELAY; // Reset backoff on success
+        this.setStatus("active");
+      };
 
-    this.recognition.onresult = (event: SpeechRecognitionEvent) => {
-      // Process results from the latest result onwards
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const result = event.results[i];
-        const transcript = result[0].transcript.trim();
+      this.recognition.onresult = (event: SpeechRecognitionEvent) => {
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const result = event.results[i];
+          const transcript = result[0].transcript.trim();
 
-        if (transcript) {
-          this.onTranscript(transcript, result.isFinal);
-        }
+          if (transcript) {
+            this.onTranscript(transcript, result.isFinal);
+          }
 
-        // Also check alternative results for better matching
-        if (result.isFinal && result.length > 1) {
-          for (let alt = 1; alt < result.length; alt++) {
-            const altTranscript = result[alt].transcript.trim();
-            if (altTranscript && altTranscript !== transcript) {
-              this.onTranscript(altTranscript, true);
+          if (result.isFinal && result.length > 1) {
+            for (let alt = 1; alt < result.length; alt++) {
+              const altTranscript = result[alt].transcript.trim();
+              if (altTranscript && altTranscript !== transcript) {
+                this.onTranscript(altTranscript, true);
+              }
             }
           }
         }
-      }
-    };
+      };
 
-    this.recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-      console.warn("Speech recognition error:", event.error);
+      this.recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+        console.warn("Speech recognition error:", event.error);
+        
+        if (event.error === "aborted") return;
 
-      if (event.error === "aborted") {
-        // Normal when we stop/restart, just ignore
-        return;
-      }
+        if (event.error === "no-speech") {
+          // Benign timeout - fast restart
+          this.scheduleRestart(MIN_RESTART_DELAY);
+          return;
+        }
 
-      if (event.error === "no-speech") {
-        // Silence detected — restart
-        this.scheduleRestart();
-        return;
-      }
+        if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+          this.shouldRestart = false;
+          this.setStatus("error");
+          return;
+        }
 
-      if (event.error === "not-allowed" || event.error === "service-not-allowed") {
-        this.onStatus(false);
-        this.shouldRestart = false;
-        return;
-      }
+        // Apply backoff for network or other critical errors
+        this.setStatus("error");
+        this.scheduleRestart(this.restartDelay);
+        this.restartDelay = Math.min(MAX_RESTART_DELAY, this.restartDelay * BACKOFF_FACTOR);
+      };
 
-      // For network errors or others, try restarting
-      this.scheduleRestart();
-    };
+      this.recognition.onend = () => {
+        this.isRunning = false;
+        if (this.shouldRestart) {
+          this.scheduleRestart(this.restartDelay);
+        } else {
+          this.setStatus("none");
+        }
+      };
 
-    this.recognition.onend = () => {
-      this.isRunning = false;
-
-      // Auto-restart if we should keep listening
-      if (this.shouldRestart) {
-        this.scheduleRestart();
-      } else {
-        this.onStatus(false);
-      }
-    };
-
-    try {
       this.recognition.start();
     } catch (e) {
       console.warn("Failed to start speech recognition:", e);
-      this.scheduleRestart();
+      this.isRunning = false;
+      this.scheduleRestart(this.restartDelay);
     }
   }
 
@@ -183,6 +199,8 @@ export class SpeechRecognitionEngine {
 
     if (this.recognition) {
       try {
+        this.recognition.onend = null; // Prevent onend trigger
+        this.recognition.onerror = null;
         this.recognition.abort();
       } catch {
         // Ignore errors during cleanup
@@ -191,38 +209,44 @@ export class SpeechRecognitionEngine {
     }
 
     this.isRunning = false;
-    this.onStatus(false);
+    this.setStatus("none");
   }
 
   /**
-   * Schedule a restart after a short delay.
+   * Schedule a restart after a delay.
    */
-  private scheduleRestart(): void {
-    if (!this.shouldRestart) return;
-
-    if (this.restartTimeout) {
-      clearTimeout(this.restartTimeout);
-    }
+  private scheduleRestart(delay: number): void {
+    if (!this.shouldRestart || this.restartTimeout) return;
 
     this.restartTimeout = setTimeout(() => {
+      this.restartTimeout = null;
       if (this.shouldRestart) {
-        // Clean up old recognition
-        if (this.recognition) {
-          try {
-            this.recognition.abort();
-          } catch {
-            // Ignore
-          }
-        }
+        this.cleanup();
         this.start();
       }
-    }, 300);
+    }, delay);
   }
 
-  /**
-   * Whether recognition is currently running.
-   */
+  private cleanup(): void {
+    if (this.recognition) {
+      try {
+        this.recognition.onend = null;
+        this.recognition.onerror = null;
+        this.recognition.abort();
+      } catch {
+        // Ignore
+      }
+      this.recognition = null;
+    }
+    this.isRunning = false;
+  }
+
   get running(): boolean {
     return this.isRunning;
   }
+
+  get status(): SpeechStatus {
+    return this.currentStatus;
+  }
 }
+

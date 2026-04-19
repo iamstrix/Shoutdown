@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useCallback, useState } from "react";
 import { GameEngine } from "@/lib/game-engine";
-import { SpeechRecognitionEngine } from "@/lib/speech-recognition";
+import { SpeechRecognitionEngine, type SpeechStatus } from "@/lib/speech-recognition";
 import type { GameState, GameConfig } from "@/lib/types";
 
 interface GameCanvasProps {
@@ -20,6 +20,7 @@ export default function GameCanvas({ wordPool, onGameOver, onBack }: GameCanvasP
   const [finalScore, setFinalScore] = useState(0);
   const [finalWordsCleared, setFinalWordsCleared] = useState(0);
   const [speechSupported, setSpeechSupported] = useState(true);
+  const [speechStatus, setSpeechStatus] = useState<SpeechStatus>("none");
 
   const handleGameOver = useCallback(
     (score: number, wordsCleared: number) => {
@@ -62,8 +63,9 @@ export default function GameCanvas({ wordPool, onGameOver, onBack }: GameCanvasP
         (transcript, isFinal) => {
           engine.handleTranscript(transcript, isFinal);
         },
-        (active) => {
-          engine.setMicActive(active);
+        (status) => {
+          setSpeechStatus(status);
+          engine.setMicActive(status === "active");
         }
       );
       speechRef.current = speech;
@@ -98,6 +100,26 @@ export default function GameCanvas({ wordPool, onGameOver, onBack }: GameCanvasP
     window.location.reload();
   };
 
+  const getMicStatusColor = () => {
+    switch (speechStatus) {
+      case "active": return "#0f0";
+      case "starting":
+      case "reconnecting": return "#ff0";
+      case "error": return "#f00";
+      default: return "#888";
+    }
+  };
+
+  const getMicStatusLabel = () => {
+    switch (speechStatus) {
+      case "active": return "ON";
+      case "starting": return "Starting...";
+      case "reconnecting": return "Reconnecting...";
+      case "error": return "Error";
+      default: return "OFF";
+    }
+  };
+
   return (
     <div style={{ position: "relative", width: "100%", height: "100vh", overflow: "hidden", backgroundColor: "#000" }}>
       {/* Canvas */}
@@ -120,8 +142,8 @@ export default function GameCanvas({ wordPool, onGameOver, onBack }: GameCanvasP
       <div style={{ position: "absolute", top: "1rem", right: "1rem", textAlign: "right", color: "#fff", pointerEvents: "none" }}>
         <div>Score: {gameState?.score}</div>
         <div>Lives: {gameState?.lives}</div>
-        <div style={{ color: gameState?.micActive ? "#0f0" : "#f00" }}>
-          Mic: {gameState?.micActive ? "ON" : "OFF"}
+        <div style={{ color: getMicStatusColor(), fontWeight: "bold" }}>
+          Mic: {getMicStatusLabel()}
         </div>
       </div>
 
@@ -156,4 +178,5 @@ export default function GameCanvas({ wordPool, onGameOver, onBack }: GameCanvasP
     </div>
   );
 }
+
 
