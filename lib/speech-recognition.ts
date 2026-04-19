@@ -1,244 +1,148 @@
-// ─── Web Speech API Wrapper ──────────────────────────────────────────────────
+// ─── Deepgram Speech Recognition Engine ───────────────────────────────────────
+import { io, Socket } from "socket.io-client";
 
 export type SpeechStatus = "none" | "starting" | "active" | "error" | "reconnecting";
 export type TranscriptCallback = (transcript: string, isFinal: boolean) => void;
 export type StatusCallback = (status: SpeechStatus) => void;
 
-// ─── Web Speech API Type Declarations ────────────────────────────────────────
-// These types aren't included in TypeScript's lib.dom by default
-
-interface SpeechRecognitionResult {
-  readonly length: number;
-  readonly isFinal: boolean;
-  [index: number]: SpeechRecognitionAlternative;
-}
-
-interface SpeechRecognitionAlternative {
-  readonly transcript: string;
-  readonly confidence: number;
-}
-
-interface SpeechRecognitionResultList {
-  readonly length: number;
-  [index: number]: SpeechRecognitionResult;
-}
-
-interface SpeechRecognitionEvent extends Event {
-  readonly resultIndex: number;
-  readonly results: SpeechRecognitionResultList;
-}
-
-interface SpeechRecognitionErrorEvent extends Event {
-  readonly error: string;
-  readonly message: string;
-}
-
-interface SpeechRecognitionInstance extends EventTarget {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  maxAlternatives: number;
-  onstart: ((this: SpeechRecognitionInstance, ev: Event) => void) | null;
-  onresult: ((this: SpeechRecognitionInstance, ev: SpeechRecognitionEvent) => void) | null;
-  onerror: ((this: SpeechRecognitionInstance, ev: SpeechRecognitionErrorEvent) => void) | null;
-  onend: ((this: SpeechRecognitionInstance, ev: Event) => void) | null;
-  start(): void;
-  stop(): void;
-  abort(): void;
-}
-
-interface SpeechRecognitionConstructor {
-  new (): SpeechRecognitionInstance;
-}
-
-// Extend the Window interface for vendor-prefixed SpeechRecognition
-declare global {
-  interface Window {
-    SpeechRecognition: SpeechRecognitionConstructor;
-    webkitSpeechRecognition: SpeechRecognitionConstructor;
-  }
-}
-
-const MIN_RESTART_DELAY = 300;
-const MAX_RESTART_DELAY = 10000;
-const BACKOFF_FACTOR = 1.5;
-
 export class SpeechRecognitionEngine {
-  private recognition: SpeechRecognitionInstance | null = null;
+  private socket: Socket | null = null;
+  private mediaRecorder: MediaRecorder | null = null;
+  private stream: MediaStream | null = null;
   private onTranscript: TranscriptCallback;
   private onStatus: StatusCallback;
-  private isRunning = false;
-  private shouldRestart = true;
-  private restartTimeout: ReturnType<typeof setTimeout> | null = null;
-  private restartDelay = MIN_RESTART_DELAY;
   private currentStatus: SpeechStatus = "none";
+  private isRunning = false;
 
   constructor(onTranscript: TranscriptCallback, onStatus: StatusCallback) {
     this.onTranscript = onTranscript;
     this.onStatus = onStatus;
   }
 
-  /**
-   * Check if the Web Speech API is available in this browser.
-   */
   static isSupported(): boolean {
-    if (typeof window === "undefined") return false;
-    return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+    return typeof window !== "undefined" && !!navigator.mediaDevices;
   }
 
   private setStatus(status: SpeechStatus) {
     if (this.currentStatus !== status) {
+      console.log(`[SPEECH] Status change: ${this.currentStatus} -> ${status}`);
       this.currentStatus = status;
       this.onStatus(status);
     }
   }
 
   /**
-   * Start continuous speech recognition.
+   * Start streaming audio to the backend proxy for Deepgram processing.
    */
-  start(): void {
-    if (!SpeechRecognitionEngine.isSupported()) {
-      console.warn("Speech recognition is not supported in this browser.");
-      this.setStatus("none");
-      return;
-    }
-
-    if (this.isRunning) {
-      return; // Already running or starting
-    }
-
-    const SpeechRecognitionAPI =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
+  async start(): Promise<void> {
+    if (this.isRunning) return;
 
     try {
-      this.recognition = new SpeechRecognitionAPI();
-      this.recognition.continuous = true;
-      this.recognition.interimResults = true;
-      this.recognition.lang = "en-US";
-      this.recognition.maxAlternatives = 3;
+      this.setStatus("starting");
 
-      this.shouldRestart = true;
-      this.setStatus(this.restartDelay > MIN_RESTART_DELAY ? "reconnecting" : "starting");
+      // Initialize Socket.io connection to our backend
+      this.socket = io();
 
-      this.recognition.onstart = () => {
-        this.isRunning = true;
-        this.restartDelay = MIN_RESTART_DELAY; // Reset backoff on success
-        this.setStatus("active");
-      };
+      this.socket.on("connect", () => {
+        console.log("[SPEECH] Socket.io connected, awaiting proxy-ready...");
+      });
 
-      this.recognition.onresult = (event: SpeechRecognitionEvent) => {
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const result = event.results[i];
-          const transcript = result[0].transcript.trim();
+      // KEY FIX: Only start the recorder after the proxy tells us it's fully connected to Deepgram.
+      // This ensures the first chunk (with WebM headers) is not dropped.
+      this.socket.on("proxy-ready", () => {
+        console.log("[SPEECH] Received proxy-ready signal. Initializing mic...");
+        this.initializeMediaRecorder();
+      });
 
-          if (transcript) {
-            this.onTranscript(transcript, result.isFinal);
-          }
-
-          if (result.isFinal && result.length > 1) {
-            for (let alt = 1; alt < result.length; alt++) {
-              const altTranscript = result[alt].transcript.trim();
-              if (altTranscript && altTranscript !== transcript) {
-                this.onTranscript(altTranscript, true);
-              }
-            }
-          }
+      this.socket.on("transcript", (data: { text: string; isFinal: boolean }) => {
+        if (data.text) {
+          this.onTranscript(data.text, data.isFinal);
         }
-      };
+      });
 
-      this.recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-        console.warn("Speech recognition error:", event.error);
-        
-        if (event.error === "aborted") return;
-
-        if (event.error === "no-speech") {
-          // Benign timeout - fast restart
-          this.scheduleRestart(MIN_RESTART_DELAY);
-          return;
-        }
-
-        if (event.error === "not-allowed" || event.error === "service-not-allowed") {
-          this.shouldRestart = false;
-          this.setStatus("error");
-          return;
-        }
-
-        // Apply backoff for network or other critical errors
+      this.socket.on("error", (err: string) => {
+        console.error("[SPEECH] Server reported error:", err);
         this.setStatus("error");
-        this.scheduleRestart(this.restartDelay);
-        this.restartDelay = Math.min(MAX_RESTART_DELAY, this.restartDelay * BACKOFF_FACTOR);
-      };
+      });
 
-      this.recognition.onend = () => {
-        this.isRunning = false;
-        if (this.shouldRestart) {
-          this.scheduleRestart(this.restartDelay);
-        } else {
-          this.setStatus("none");
+      this.socket.on("disconnect", () => {
+        console.log("[SPEECH] Socket.io disconnected");
+        if (this.isRunning) {
+          this.setStatus("reconnecting");
+          this.stopMediaRecorder();
+        }
+      });
+
+    } catch (error) {
+      console.error("[SPEECH] Failed to start stream:", error);
+      this.setStatus("error");
+      this.stop();
+    }
+  }
+
+  private async initializeMediaRecorder() {
+    try {
+      // Capture Microphone
+      console.log("[SPEECH] Requesting microphone access...");
+      this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log("[SPEECH] Microphone access granted");
+      
+      // We use webm/opus for standard streaming compatibility
+      this.mediaRecorder = new MediaRecorder(this.stream, {
+        mimeType: "audio/webm; codecs=opus",
+      });
+
+      this.mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0 && this.socket?.connected) {
+          // Send raw Blob. Socket.io handles Blob/Buffer conversion.
+          this.socket.emit("audio-chunk", event.data);
         }
       };
 
-      this.recognition.start();
-    } catch (e) {
-      console.warn("Failed to start speech recognition:", e);
-      this.isRunning = false;
-      this.scheduleRestart(this.restartDelay);
+      this.mediaRecorder.onerror = (event) => {
+        console.error("[SPEECH] MediaRecorder error:", event);
+        this.setStatus("error");
+      };
+
+      this.mediaRecorder.start(250); // Timeslice: 250ms chunks as requested
+      console.log("[SPEECH] MediaRecorder started (250ms intervals)");
+      
+      this.isRunning = true;
+      this.setStatus("active");
+    } catch (err) {
+      console.error("[SPEECH] Media initialization failed:", err);
+      this.setStatus("error");
+    }
+  }
+
+  private stopMediaRecorder() {
+    if (this.mediaRecorder) {
+      try {
+        this.mediaRecorder.stop();
+      } catch (e) {}
+      this.mediaRecorder = null;
+    }
+
+    if (this.stream) {
+      this.stream.getTracks().forEach((track) => track.stop());
+      this.stream = null;
     }
   }
 
   /**
-   * Stop speech recognition.
+   * Stop audio capture and close WebSocket.
    */
   stop(): void {
-    this.shouldRestart = false;
-
-    if (this.restartTimeout) {
-      clearTimeout(this.restartTimeout);
-      this.restartTimeout = null;
-    }
-
-    if (this.recognition) {
-      try {
-        this.recognition.onend = null; // Prevent onend trigger
-        this.recognition.onerror = null;
-        this.recognition.abort();
-      } catch {
-        // Ignore errors during cleanup
-      }
-      this.recognition = null;
-    }
-
+    console.log("[SPEECH] Stopping engine...");
     this.isRunning = false;
+    this.stopMediaRecorder();
+
+    if (this.socket) {
+      this.socket.disconnect();
+      this.socket = null;
+    }
+
     this.setStatus("none");
-  }
-
-  /**
-   * Schedule a restart after a delay.
-   */
-  private scheduleRestart(delay: number): void {
-    if (!this.shouldRestart || this.restartTimeout) return;
-
-    this.restartTimeout = setTimeout(() => {
-      this.restartTimeout = null;
-      if (this.shouldRestart) {
-        this.cleanup();
-        this.start();
-      }
-    }, delay);
-  }
-
-  private cleanup(): void {
-    if (this.recognition) {
-      try {
-        this.recognition.onend = null;
-        this.recognition.onerror = null;
-        this.recognition.abort();
-      } catch {
-        // Ignore
-      }
-      this.recognition = null;
-    }
-    this.isRunning = false;
   }
 
   get running(): boolean {
@@ -249,4 +153,3 @@ export class SpeechRecognitionEngine {
     return this.currentStatus;
   }
 }
-
