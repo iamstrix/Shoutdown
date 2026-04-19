@@ -131,10 +131,10 @@ export default function GameCanvas({ wordPool, onGameOver, onBack }: GameCanvasP
 
       {/* Top controls overlay */}
       <div style={{ position: "absolute", top: "1rem", left: "50%", transform: "translateX(-50%)", display: "flex", gap: "1rem", zIndex: 10 }}>
-        <button onClick={handlePause} id="pause-button">
+        <button onClick={handlePause} id="pause-button" style={{ background: "rgba(255,255,255,0.1)", color: "#fff", border: "1px solid rgba(255,255,255,0.3)" }}>
           {gameState?.paused ? "Resume" : "Pause"}
         </button>
-        <button onClick={onBack} id="quit-button">
+        <button onClick={onBack} id="quit-button" style={{ background: "rgba(255,255,255,0.1)", color: "#fff", border: "1px solid rgba(255,255,255,0.3)" }}>
           Quit
         </button>
       </div>
@@ -157,19 +157,27 @@ export default function GameCanvas({ wordPool, onGameOver, onBack }: GameCanvasP
 
       {/* Game Over Overlay */}
       {showGameOver && (
-        <div style={{ position: "absolute", inset: 0, backgroundColor: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 20 }}>
-          <div style={{ background: "#fff", color: "#000", padding: "2rem", maxWidth: "400px", width: "90%", textAlign: "center", margin: "auto" }}>
-            <h2 style={{ fontSize: "2rem", margin: "0 0 1rem" }}>GAME OVER</h2>
-            <div style={{ marginBottom: "1.5rem" }}>
-              <p>Final Score: <strong>{finalScore}</strong></p>
-              <p>Words Cleared: <strong>{finalWordsCleared}</strong></p>
-              <p>Max Combo: <strong>{gameState?.maxCombo ?? 0}x</strong></p>
+        <div style={{ position: "absolute", inset: 0, backgroundColor: "rgba(0,0,0,0.9)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 20 }}>
+          <div style={{ background: "#111", color: "#fff", padding: "2rem", maxWidth: "400px", width: "90%", textAlign: "center", border: "1px solid #333", borderRadius: "4px" }}>
+            <h2 style={{ fontSize: "2rem", margin: "0 0 1rem", letterSpacing: "2px" }}>GAME OVER</h2>
+            <div style={{ marginBottom: "1.5rem", opacity: 0.8 }}>
+              <p>Final Score: <strong style={{ color: "#fff" }}>{finalScore}</strong></p>
+              <p>Words Cleared: <strong style={{ color: "#fff" }}>{finalWordsCleared}</strong></p>
+              <p>Max Combo: <strong style={{ color: "#fff" }}>{gameState?.maxCombo ?? 0}x</strong></p>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-              <button onClick={handlePlayAgain} id="play-again-button" style={{ padding: "1rem", fontWeight: "bold" }}>
+              <button 
+                onClick={handlePlayAgain} 
+                id="play-again-button" 
+                style={{ background: "#fff", color: "#000", padding: "1rem", fontWeight: "bold", border: "none" }}
+              >
                 PLAY AGAIN
               </button>
-              <button onClick={onBack} id="back-menu-button">
+              <button 
+                onClick={onBack} 
+                id="back-menu-button" 
+                style={{ background: "transparent", color: "#fff", border: "1px solid #333" }}
+              >
                 Main Menu
               </button>
             </div>

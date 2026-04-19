@@ -50,12 +50,11 @@ app.prepare().then(() => {
 
         dgSocket = await deepgramClient.listen.v1.connect({
           model: "nova-2",
-          interim_results: true,
+          interimResults: true,
           endpointing: false,                    // Keep original — 300ms value caused 400
-          smart_format: false,                   // #1: Skip punctuation/capitalization post-processing
+          smartFormat: false,                   // #1: Skip punctuation/capitalization post-processing
           encoding: "opus",
           container: "webm",
-          Authorization: `Token ${DEEPGRAM_API_KEY}`,
         });
 
         // SDK v5: Explicitly start the handshake

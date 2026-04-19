@@ -247,18 +247,18 @@ export class GameEngine {
     const h = this.canvas.height / this.dpr;
     const ctx = this.ctx;
 
-    ctx.fillStyle = "#fff";
+    ctx.fillStyle = "#000";
     ctx.fillRect(0, 0, w, h);
 
     // Danger line
-    ctx.strokeStyle = "#f00";
+    ctx.strokeStyle = "rgba(255, 0, 0, 0.5)";
     ctx.beginPath();
     ctx.moveTo(0, h - 2);
     ctx.lineTo(w, h - 2);
     ctx.stroke();
 
     // Words
-    ctx.fillStyle = "#000";
+    ctx.fillStyle = "#fff";
     ctx.font = "20px system-ui";
     ctx.textAlign = "left";
     for (const word of this.state.words) {
@@ -268,10 +268,10 @@ export class GameEngine {
 
     // Transcript
     if (this.state.lastTranscript) {
-      ctx.fillStyle = "#666";
+      ctx.fillStyle = "#888";
       ctx.font = "16px system-ui";
       ctx.textAlign = "center";
-      ctx.fillText(`Hearing: ${this.state.lastTranscript}`, w / 2, h - 20);
+      ctx.fillText(`Hearing: ${this.state.lastTranscript}`, w / 2, h - 30);
     }
   }
 
