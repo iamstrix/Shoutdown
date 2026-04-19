@@ -48,7 +48,7 @@ interface SpeechRecognitionInstance extends EventTarget {
 }
 
 interface SpeechRecognitionConstructor {
-  new (): SpeechRecognitionInstance;
+  new(): SpeechRecognitionInstance;
 }
 
 // Extend the Window interface for vendor-prefixed SpeechRecognition
@@ -59,9 +59,10 @@ declare global {
   }
 }
 
-const MIN_RESTART_DELAY = 300;
+const MIN_RESTART_DELAY = 10;
 const MAX_RESTART_DELAY = 10000;
 const BACKOFF_FACTOR = 1.5;
+const SESSION_REFRESH_INTERVAL = 30000; // Force refresh every 30 seconds
 
 export class SpeechRecognitionEngine {
   private recognition: SpeechRecognitionInstance | null = null;
@@ -70,6 +71,7 @@ export class SpeechRecognitionEngine {
   private isRunning = false;
   private shouldRestart = true;
   private restartTimeout: ReturnType<typeof setTimeout> | null = null;
+  private refreshTimeout: ReturnType<typeof setTimeout> | null = null;
   private restartDelay = MIN_RESTART_DELAY;
   private currentStatus: SpeechStatus = "none";
 
@@ -124,6 +126,17 @@ export class SpeechRecognitionEngine {
         this.isRunning = true;
         this.restartDelay = MIN_RESTART_DELAY; // Reset backoff on success
         this.setStatus("active");
+
+        // Start proactive refresh timer
+        this.clearRefreshTimer();
+        this.refreshTimeout = setTimeout(() => {
+          console.log("[SPEECH] Proactive session refresh triggered");
+          if (this.recognition) {
+            try {
+              this.recognition.abort();
+            } catch (e) { }
+          }
+        }, SESSION_REFRESH_INTERVAL);
       };
 
       this.recognition.onresult = (event: SpeechRecognitionEvent) => {
@@ -148,7 +161,7 @@ export class SpeechRecognitionEngine {
 
       this.recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
         console.warn("Speech recognition error:", event.error);
-        
+
         if (event.error === "aborted") return;
 
         if (event.error === "no-speech") {
@@ -210,6 +223,14 @@ export class SpeechRecognitionEngine {
 
     this.isRunning = false;
     this.setStatus("none");
+    this.clearRefreshTimer();
+  }
+
+  private clearRefreshTimer(): void {
+    if (this.refreshTimeout) {
+      clearTimeout(this.refreshTimeout);
+      this.refreshTimeout = null;
+    }
   }
 
   /**
@@ -239,6 +260,7 @@ export class SpeechRecognitionEngine {
       this.recognition = null;
     }
     this.isRunning = false;
+    this.clearRefreshTimer();
   }
 
   get running(): boolean {
