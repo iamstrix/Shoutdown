@@ -103,11 +103,11 @@ export default function GameCanvas({ wordPool, onGameOver, onBack }: GameCanvasP
 
   const getMicStatusColor = () => {
     switch (speechStatus) {
-      case "active": return "#ECD444"; // Golden Glow
+      case "active": return "#0f0";
       case "starting":
-      case "reconnecting": return "#6E2594"; // Rebecca Purple
-      case "error": return "#ff4444";
-      default: return "#808080"; // Grey
+      case "reconnecting": return "#ff0";
+      case "error": return "#f00";
+      default: return "#888";
     }
   };
 
@@ -130,20 +130,20 @@ export default function GameCanvas({ wordPool, onGameOver, onBack }: GameCanvasP
       />
 
       {/* Top controls overlay */}
-      <div style={{ position: "absolute", top: "1.5rem", left: "50%", transform: "translateX(-50%)", display: "flex", gap: "1rem", zIndex: 10 }}>
-        <button onClick={handlePause} id="pause-button" style={{ border: "2px solid var(--primary)", padding: "0.5rem 1rem", fontSize: "0.8rem" }}>
-          {gameState?.paused ? "RESUME" : "PAUSE"}
+      <div style={{ position: "absolute", top: "1rem", left: "50%", transform: "translateX(-50%)", display: "flex", gap: "1rem", zIndex: 10 }}>
+        <button onClick={handlePause} id="pause-button" style={{ background: "rgba(59, 130, 246, 0.05)", color: "var(--accent)", border: "1px solid rgba(59, 130, 246, 0.3)", borderRadius: "2px", fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "1px" }}>
+          {gameState?.paused ? "Resume" : "Pause"}
         </button>
-        <button onClick={onBack} id="quit-button" style={{ border: "2px solid var(--neutral)", padding: "0.5rem 1rem", fontSize: "0.8rem", color: "var(--neutral)" }}>
-          ABORT
+        <button onClick={onBack} id="quit-button" style={{ background: "rgba(255, 255, 255, 0.05)", color: "#fff", border: "1px solid rgba(255, 255, 255, 0.1)", borderRadius: "2px", fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "1px" }}>
+          Quit
         </button>
       </div>
 
       {/* Status Info */}
-      <div style={{ position: "absolute", top: "1.5rem", right: "1.5rem", textAlign: "right", color: "var(--secondary)", pointerEvents: "none", fontFamily: "inherit" }}>
-        <div style={{ fontSize: "1.5rem", fontWeight: "900" }}>SCORE: {gameState?.score}</div>
-        <div style={{ fontSize: "1rem", color: "var(--neutral)" }}>LIVES: {gameState?.lives}</div>
-        <div style={{ color: getMicStatusColor(), fontWeight: "bold", fontSize: "0.8rem", marginTop: "0.5rem" }}>
+      <div style={{ position: "absolute", top: "1.2rem", right: "1.5rem", textAlign: "right", color: "#fff", pointerEvents: "none", fontFamily: "monospace", fontSize: "1rem", letterSpacing: "1px" }}>
+        <div style={{ opacity: 0.7 }}>SCORE: <span style={{ color: "var(--accent)", fontWeight: "bold" }}>{gameState?.score}</span></div>
+        <div style={{ opacity: 0.7 }}>LIVES: <span style={{ color: "var(--accent)", fontWeight: "bold" }}>{gameState?.lives}</span></div>
+        <div style={{ color: getMicStatusColor(), fontWeight: "bold", fontSize: "0.8rem", marginTop: "0.2rem" }}>
           MIC: {getMicStatusLabel()}
         </div>
       </div>
@@ -157,31 +157,28 @@ export default function GameCanvas({ wordPool, onGameOver, onBack }: GameCanvasP
 
       {/* Game Over Overlay */}
       {showGameOver && (
-        <div style={{ position: "absolute", inset: 0, backgroundColor: "rgba(0,0,0,0.95)", backdropFilter: "grayscale(1) blur(10px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 20 }}>
-          <div style={{ border: "4px solid var(--primary)", background: "var(--background)", color: "var(--foreground)", padding: "3rem", maxWidth: "500px", width: "90%", textAlign: "center", position: "relative" }}>
-            <div style={{ position: "absolute", top: -10, left: -10, width: 20, height: 20, background: "var(--secondary)" }} />
-            <div style={{ position: "absolute", bottom: -10, right: -10, width: 20, height: 20, background: "var(--secondary)" }} />
-            
-            <h2 style={{ fontSize: "3rem", margin: "0 0 2rem", color: "var(--secondary)" }}>TERMINATED</h2>
-            <div style={{ marginBottom: "2rem", borderTop: "1px solid #222", borderBottom: "1px solid #222", padding: "1rem 0" }}>
-              <p style={{ margin: "0.5rem 0" }}>SCORE: <strong style={{ color: "var(--secondary)" }}>{finalScore}</strong></p>
-              <p style={{ margin: "0.5rem 0" }}>WORDS CLEARED: <strong>{finalWordsCleared}</strong></p>
-              <p style={{ margin: "0.5rem 0" }}>MAX COMBO: <strong>{gameState?.maxCombo ?? 0}X</strong></p>
+        <div style={{ position: "absolute", inset: 0, backgroundColor: "rgba(0,0,0,0.95)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 20 }}>
+          <div style={{ background: "#050505", color: "#fff", padding: "3rem 2rem", maxWidth: "420px", width: "90%", textAlign: "center", border: "1px solid var(--accent)", borderRadius: "2px", boxShadow: "0 0 40px rgba(59, 130, 246, 0.15)" }}>
+            <h2 style={{ fontSize: "2.5rem", margin: "0 0 1.5rem", letterSpacing: "6px", color: "var(--accent)", fontWeight: "900" }}>GAME OVER</h2>
+            <div style={{ marginBottom: "2rem", opacity: 0.9, fontFamily: "monospace", fontSize: "1.1rem" }}>
+              <p style={{ marginBottom: "0.5rem" }}>FINAL SCORE: <strong style={{ color: "var(--accent)" }}>{finalScore}</strong></p>
+              <p style={{ marginBottom: "0.5rem" }}>WORDS CLEARED: <strong style={{ color: "var(--accent)" }}>{finalWordsCleared}</strong></p>
+              <p>MAX COMBO: <strong style={{ color: "var(--accent)" }}>{gameState?.maxCombo ?? 0}x</strong></p>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
               <button 
                 onClick={handlePlayAgain} 
                 id="play-again-button" 
-                style={{ background: "var(--secondary)", color: "var(--background)", padding: "1.2rem", fontSize: "1.2rem", fontWeight: "bold", border: "none" }}
+                style={{ background: "var(--accent)", color: "#000", padding: "1.2rem", fontWeight: "bold", border: "none", borderRadius: "2px", letterSpacing: "2px", textTransform: "uppercase" }}
               >
-                REINITIALIZE
+                PLAY AGAIN
               </button>
               <button 
                 onClick={onBack} 
                 id="back-menu-button" 
-                style={{ background: "transparent", color: "var(--neutral)", border: "1px solid var(--neutral)" }}
+                style={{ background: "transparent", color: "#fff", border: "1px solid #222", padding: "0.8rem", textTransform: "uppercase", fontSize: "0.8rem", letterSpacing: "1px" }}
               >
-                RETURN TO HQ
+                Main Menu
               </button>
             </div>
           </div>

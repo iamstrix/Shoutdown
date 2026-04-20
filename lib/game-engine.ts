@@ -247,56 +247,31 @@ export class GameEngine {
     const h = this.canvas.height / this.dpr;
     const ctx = this.ctx;
 
-    // Background
-    ctx.fillStyle = "#000000";
+    ctx.fillStyle = "#000";
     ctx.fillRect(0, 0, w, h);
 
-    // Experimental Grid
-    ctx.strokeStyle = "rgba(110, 37, 148, 0.15)"; // Soft Rebecca Purple
-    ctx.lineWidth = 1;
-    for (let x = 0; x < w; x += 40) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, h);
-      ctx.stroke();
-    }
-    for (let y = 0; y < h; y += 40) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(w, y);
-      ctx.stroke();
-    }
-
-    // Danger line
-    ctx.strokeStyle = "#6E2594"; // Rebecca Purple
-    ctx.lineWidth = 4;
+    // Danger line - Subtle red pulse
+    ctx.strokeStyle = "rgba(255, 0, 0, 0.3)";
     ctx.beginPath();
-    ctx.moveTo(0, h - 4);
-    ctx.lineTo(w, h - 4);
+    ctx.moveTo(0, h - 2);
+    ctx.lineTo(w, h - 2);
     ctx.stroke();
 
-    // Words
-    ctx.font = "bold 24px 'Space Grotesk', system-ui";
+    // Words - Modern clean white
+    ctx.fillStyle = "#fff";
+    ctx.font = "600 20px 'Inter', system-ui";
     ctx.textAlign = "left";
-    ctx.textBaseline = "top";
-    
     for (const word of this.state.words) {
       if (word.cleared) continue;
-      
-      // Shadow/Glow effect
-      ctx.shadowColor = "#ECD444";
-      ctx.shadowBlur = 5;
-      ctx.fillStyle = "#ECD444"; // Golden Glow
-      ctx.fillText(word.text, word.x, word.y);
-      ctx.shadowBlur = 0;
+      ctx.fillText(word.text.toUpperCase(), word.x, word.y);
     }
 
-    // Transcript / Status
+    // Transcript - Futuristic Blue
     if (this.state.lastTranscript) {
-      ctx.fillStyle = "#808080"; // Grey
-      ctx.font = "14px system-ui";
+      ctx.fillStyle = "#3b82f6";
+      ctx.font = "italic 16px 'Inter', system-ui";
       ctx.textAlign = "center";
-      ctx.fillText(`TRANSCRIBING: ${this.state.lastTranscript}`, w / 2, h - 40);
+      ctx.fillText(`[ ${this.state.lastTranscript.toUpperCase()} ]`, w / 2, h - 40);
     }
   }
 

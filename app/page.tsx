@@ -74,63 +74,58 @@ export default function Home() {
   }
 
   return (
-    <div style={{ maxWidth: "600px", margin: "4rem auto", padding: "2rem", border: "10px solid var(--primary)", position: "relative" }}>
-      {/* Decorative corners */}
-      <div style={{ position: "absolute", top: -20, left: -20, width: 40, height: 40, background: "var(--secondary)" }} />
-      <div style={{ position: "absolute", bottom: -20, right: -20, width: 40, height: 40, background: "var(--secondary)" }} />
+    <div style={{ maxWidth: "600px", margin: "2rem auto", padding: "1rem" }}>
+      <h1 style={{ color: "var(--accent)", letterSpacing: "4px", marginBottom: "0.5rem" }}>SHOUTDOWN</h1>
+      <p style={{ opacity: 0.6, marginBottom: "2rem" }}>Voice-controlled words game. Speak the words to clear them.</p>
 
-      <h1 style={{ fontSize: "4rem", marginBottom: "0.5rem" }}>SHOUTDOWN</h1>
-      <p style={{ marginBottom: "3rem", fontSize: "1.2rem", color: "var(--neutral)" }}>Speak to survive. Destroy the falling words.</p>
-
-      <div style={{ marginBottom: "2rem" }}>
-        <label htmlFor="topic-input" style={{ display: "block", marginBottom: "0.5rem", color: "var(--neutral)" }}>
-          GENERATE FROM TOPIC
+      <div style={{ marginBottom: "1.5rem" }}>
+        <label htmlFor="topic-input" style={{ display: "block", marginBottom: "0.5rem", fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "1px", opacity: 0.8 }}>
+          Generate from Topic:
         </label>
-        <div style={{ display: "flex", gap: "1rem" }}>
+        <div style={{ display: "flex", gap: "0.5rem" }}>
           <input
             id="topic-input"
             type="text"
             value={topic}
             onChange={(e) => setTopic(e.target.value)}
-            placeholder="e.g. CYBERPUNK, VOID"
+            placeholder="e.g. Space, Cooking"
+            style={{ flex: 1 }}
             onKeyDown={(e) => e.key === "Enter" && handleGenerateWords()}
           />
           <button
             type="button"
-            className="btn-generate"
             onClick={handleGenerateWords}
             disabled={!topic || isGenerating}
-            style={{ whiteSpace: "nowrap" }}
           >
-            {isGenerating ? "MAPPING..." : "GENERATE"}
+            {isGenerating ? "Generating..." : "Generate"}
           </button>
         </div>
       </div>
 
-      <div style={{ marginBottom: "2rem" }}>
-        <label htmlFor="word-pool" style={{ display: "block", marginBottom: "0.5rem", color: "var(--neutral)" }}>
-          WORD POOL
+      <div style={{ marginBottom: "1.5rem" }}>
+        <label htmlFor="word-pool" style={{ display: "block", marginBottom: "0.5rem", fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "1px", opacity: 0.8 }}>
+          Word Pool (comma-separated):
         </label>
         <textarea
           id="word-pool"
           value={wordInput}
           onChange={(e) => setWordInput(e.target.value)}
-          placeholder="ENTER WORDS SEPARATED BY COMMAS..."
+          placeholder="e.g. apple, banana, cherry"
           rows={6}
         />
       </div>
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
-        <span style={{ fontSize: "0.9rem", color: "var(--secondary)" }}>{parsedWords.length} LOADED</span>
-        <button type="button" onClick={handleFillExample} style={{ border: "1px solid var(--neutral)", padding: "0.5rem 1rem", fontSize: "0.8rem" }}>
-          LOAD EXAMPLES
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "1rem" }}>
+        <span>{parsedWords.length} words loaded</span>
+        <button type="button" onClick={handleFillExample}>
+          Load Examples
         </button>
       </div>
 
       {parsedWords.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginBottom: "3rem", padding: "1rem", background: "#111", borderLeft: "4px solid var(--primary)" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginBottom: "1.5rem" }}>
           {parsedWords.map((word, i) => (
-            <span key={i} style={{ color: "var(--foreground)", fontSize: "0.8rem", borderBottom: "1px solid #333" }}>
+            <span key={i} style={{ border: "1px solid var(--accent)", padding: "0.2rem 0.6rem", fontSize: "0.8rem", color: "var(--accent)", borderRadius: "2px" }}>
               {word}
             </span>
           ))}
@@ -141,17 +136,26 @@ export default function Home() {
         type="button"
         onClick={handleStartGame}
         disabled={!canStart}
-        style={{ width: "100%", padding: "1.5rem", fontSize: "1.5rem", background: "var(--primary)", border: "none", color: "white" }}
+        style={{ 
+          width: "100%", 
+          padding: "1.2rem", 
+          fontWeight: "bold", 
+          background: "var(--accent)", 
+          color: "#000", 
+          border: "none",
+          fontSize: "1.1rem",
+          letterSpacing: "1px"
+        }}
       >
-        START MISSION
+        START GAME
       </button>
 
-      <div style={{ marginTop: "4rem", borderTop: "2px solid #222", paddingTop: "2rem" }}>
-        <h2 style={{ fontSize: "1.2rem", marginBottom: "1rem" }}>MISSION PARAMETERS</h2>
-        <ul style={{ listStyle: "none", padding: 0, color: "var(--neutral)", fontSize: "0.9rem" }}>
-          <li style={{ marginBottom: "0.5rem" }}>▲ ENABLE MICROPHONE ACCESS</li>
-          <li style={{ marginBottom: "0.5rem" }}>▲ SHOUT WORDS BEFORE IMPACT</li>
-          <li style={{ marginBottom: "0.5rem" }}>▲ DO NOT LET THEM REACH THE VOID</li>
+      <div style={{ marginTop: "3rem", borderTop: "1px solid var(--border)", paddingTop: "1.5rem", opacity: 0.6, fontSize: "0.9rem" }}>
+        <h2 style={{ fontSize: "1.2rem", marginBottom: "0.75rem", color: "var(--foreground)" }}>How to Play</h2>
+        <ul style={{ paddingLeft: "1.2rem" }}>
+          <li>Allow microphone access when prompted.</li>
+          <li>Speak the words that fall from the top of the screen.</li>
+          <li>Don't let them reach the bottom!</li>
         </ul>
       </div>
     </div>
