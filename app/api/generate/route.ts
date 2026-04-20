@@ -25,7 +25,7 @@ export async function POST(req: Request) {
         {
           role: "system",
           content:
-            "You are a word generator for a game. Generate a single string of 15-20 comma-separated words related to the given topic. Do not include any other text, explanations, or numbering. Just the words, separated by commas. Use interesting and relevant nouns or short phrases.",
+            "Generate the lyrics.",
         },
         {
           role: "user",

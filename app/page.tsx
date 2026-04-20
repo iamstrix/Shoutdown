@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import dynamic from "next/dynamic";
-import { EXAMPLE_WORDS } from "@/lib/types";
+import { EXAMPLE_WORDS, PREDEFINED_CATEGORIES } from "@/lib/types";
 
 const GameCanvas = dynamic(() => import("@/components/GameCanvas"), {
   ssr: false,
@@ -33,6 +33,11 @@ export default function Home() {
 
   const handleFillExample = () => {
     setWordInput(EXAMPLE_WORDS.join(", "));
+  };
+
+  const handleSelectCategory = (categoryName: string) => {
+    const words = PREDEFINED_CATEGORIES[categoryName as keyof typeof PREDEFINED_CATEGORIES];
+    setWordInput(words.join(", "));
   };
 
   const handleGenerateWords = async () => {
@@ -79,27 +84,19 @@ export default function Home() {
       <p>Voice-controlled words game. Speak the words to clear them.</p>
 
       <div style={{ marginBottom: "1rem" }}>
-        <label htmlFor="topic-input" style={{ display: "block", marginBottom: "0.5rem" }}>
-          Generate from Topic:
+        <label style={{ display: "block", marginBottom: "0.5rem" }}>
+          Categories:
         </label>
-        <div style={{ display: "flex", gap: "0.5rem" }}>
-          <input
-            id="topic-input"
-            type="text"
-            value={topic}
-            onChange={(e) => setTopic(e.target.value)}
-            placeholder="e.g. Space, Cooking"
-            style={{ flex: 1, padding: "0.5rem", border: "1px solid #ccc" }}
-            onKeyDown={(e) => e.key === "Enter" && handleGenerateWords()}
-          />
-          <button
-            type="button"
-            onClick={handleGenerateWords}
-            disabled={!topic || isGenerating}
-            style={{ fontWeight: "normal" }}
-          >
-            {isGenerating ? "Generating..." : "Generate"}
-          </button>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+          {Object.keys(PREDEFINED_CATEGORIES).map(cat => (
+            <button
+              key={cat}
+              onClick={() => handleSelectCategory(cat)}
+              style={{ fontSize: "0.85rem", padding: "0.4rem 0.8rem" }}
+            >
+              {cat}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -116,11 +113,33 @@ export default function Home() {
         />
       </div>
 
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "1rem" }}>
-        <span>{parsedWords.length} words loaded</span>
-        <button type="button" onClick={handleFillExample}>
-          Load Examples
-        </button>
+      <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginBottom: "1.5rem" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span>{parsedWords.length} words loaded</span>
+          <button type="button" onClick={handleFillExample} style={{ fontSize: "0.85rem" }}>
+            Load Starter (Genshin)
+          </button>
+        </div>
+        
+        <div style={{ display: "flex", gap: "0.5rem" }}>
+          <input
+            id="topic-input"
+            type="text"
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+            placeholder="AI Prompt (e.g. 80s Movies)"
+            style={{ flex: 1, padding: "0.5rem", border: "1px solid #ccc", fontSize: "0.9rem" }}
+            onKeyDown={(e) => e.key === "Enter" && handleGenerateWords()}
+          />
+          <button
+            type="button"
+            onClick={handleGenerateWords}
+            disabled={!topic || isGenerating}
+            style={{ fontWeight: "normal", fontSize: "0.9rem" }}
+          >
+            {isGenerating ? "AI Thinking..." : "AI Generate ✨"}
+          </button>
+        </div>
       </div>
 
       {parsedWords.length > 0 && (
