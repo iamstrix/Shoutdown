@@ -75,11 +75,11 @@ export default function Home() {
 
   return (
     <div style={{ maxWidth: "600px", margin: "2rem auto", padding: "1rem" }}>
-      <h1 style={{ color: "var(--accent)", letterSpacing: "4px", marginBottom: "0.5rem" }}>SHOUTDOWN</h1>
-      <p style={{ opacity: 0.6, marginBottom: "2rem" }}>Voice-controlled words game. Speak the words to clear them.</p>
+      <h1>SHOUTDOWN</h1>
+      <p>Voice-controlled words game. Speak the words to clear them.</p>
 
-      <div style={{ marginBottom: "1.5rem" }}>
-        <label htmlFor="topic-input" style={{ display: "block", marginBottom: "0.5rem", fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "1px", opacity: 0.8 }}>
+      <div style={{ marginBottom: "1rem" }}>
+        <label htmlFor="topic-input" style={{ display: "block", marginBottom: "0.5rem" }}>
           Generate from Topic:
         </label>
         <div style={{ display: "flex", gap: "0.5rem" }}>
@@ -89,21 +89,22 @@ export default function Home() {
             value={topic}
             onChange={(e) => setTopic(e.target.value)}
             placeholder="e.g. Space, Cooking"
-            style={{ flex: 1 }}
+            style={{ flex: 1, padding: "0.5rem", border: "1px solid #ccc" }}
             onKeyDown={(e) => e.key === "Enter" && handleGenerateWords()}
           />
           <button
             type="button"
             onClick={handleGenerateWords}
             disabled={!topic || isGenerating}
+            style={{ fontWeight: "normal" }}
           >
             {isGenerating ? "Generating..." : "Generate"}
           </button>
         </div>
       </div>
 
-      <div style={{ marginBottom: "1.5rem" }}>
-        <label htmlFor="word-pool" style={{ display: "block", marginBottom: "0.5rem", fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "1px", opacity: 0.8 }}>
+      <div style={{ marginBottom: "1rem" }}>
+        <label htmlFor="word-pool" style={{ display: "block", marginBottom: "0.5rem" }}>
           Word Pool (comma-separated):
         </label>
         <textarea
@@ -123,9 +124,9 @@ export default function Home() {
       </div>
 
       {parsedWords.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginBottom: "1.5rem" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginBottom: "1rem" }}>
           {parsedWords.map((word, i) => (
-            <span key={i} style={{ border: "1px solid var(--accent)", padding: "0.2rem 0.6rem", fontSize: "0.8rem", color: "var(--accent)", borderRadius: "2px" }}>
+            <span key={i} style={{ border: "1px solid #ccc", padding: "0.2rem 0.5rem" }}>
               {word}
             </span>
           ))}
@@ -136,23 +137,14 @@ export default function Home() {
         type="button"
         onClick={handleStartGame}
         disabled={!canStart}
-        style={{ 
-          width: "100%", 
-          padding: "1.2rem", 
-          fontWeight: "bold", 
-          background: "var(--accent)", 
-          color: "#000", 
-          border: "none",
-          fontSize: "1.1rem",
-          letterSpacing: "1px"
-        }}
+        style={{ width: "100%", padding: "1rem", fontWeight: "bold" }}
       >
         START GAME
       </button>
 
-      <div style={{ marginTop: "3rem", borderTop: "1px solid var(--border)", paddingTop: "1.5rem", opacity: 0.6, fontSize: "0.9rem" }}>
-        <h2 style={{ fontSize: "1.2rem", marginBottom: "0.75rem", color: "var(--foreground)" }}>How to Play</h2>
-        <ul style={{ paddingLeft: "1.2rem" }}>
+      <div style={{ marginTop: "2rem", borderTop: "1px solid #ccc", paddingTop: "1rem" }}>
+        <h2>How to Play</h2>
+        <ul>
           <li>Allow microphone access when prompted.</li>
           <li>Speak the words that fall from the top of the screen.</li>
           <li>Don't let them reach the bottom!</li>

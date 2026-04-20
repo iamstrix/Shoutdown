@@ -1,78 +1,45 @@
 @import "tailwindcss";
 
 :root {
-  --background: #000000;
-  --foreground: #ffffff;
-  --accent: #3b82f6; /* Modern Blue */
-  --accent-glow: rgba(59, 130, 246, 0.5);
-  --surface: #0a0a0a;
-  --border: #222222;
+  --background: #ffffff;
+  --foreground: #000000;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #000000;
+    --foreground: #ffffff;
+  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: system-ui, sans-serif;
   margin: 0;
   padding: 0;
-  -webkit-font-smoothing: antialiased;
 }
 
 * {
   box-sizing: border-box;
 }
 
-/* Minimalist Dark Buttons */
+/* Minimalist buttons */
 button {
   cursor: pointer;
   padding: 0.5rem 1rem;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--foreground);
-  font-size: 0.9rem;
-  font-weight: 500;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-button:hover:not(:disabled) {
-  border-color: var(--accent);
-  background: rgba(59, 130, 246, 0.05);
-}
-
-button:active:not(:disabled) {
-  transform: scale(0.98);
+  border: 1px solid #ccc;
+  background: #f0f0f0;
+  color: #000;
 }
 
 button:disabled {
   cursor: not-allowed;
-  opacity: 0.3;
+  opacity: 0.5;
 }
 
-/* Inputs & Textarea */
-textarea, input[type="text"] {
+textarea {
   width: 100%;
-  padding: 0.75rem;
-  background: var(--surface);
-  color: var(--foreground);
-  border: 1px solid var(--border);
+  padding: 0.5rem;
   font-family: inherit;
-  font-size: 0.95rem;
-  transition: border-color 0.22s ease;
-  outline: none;
-}
-
-textarea:focus, input[type="text"]:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 15px var(--accent-glow);
-}
-
-h1, h2, h3 {
-  letter-spacing: -0.02em;
-  font-weight: 700;
-}
-
-hr {
-  border: 0;
-  border-top: 1px solid var(--border);
-  margin: 2rem 0;
 }

@@ -250,28 +250,28 @@ export class GameEngine {
     ctx.fillStyle = "#000";
     ctx.fillRect(0, 0, w, h);
 
-    // Danger line - Subtle red pulse
-    ctx.strokeStyle = "rgba(255, 0, 0, 0.3)";
+    // Danger line
+    ctx.strokeStyle = "rgba(255, 0, 0, 0.5)";
     ctx.beginPath();
     ctx.moveTo(0, h - 2);
     ctx.lineTo(w, h - 2);
     ctx.stroke();
 
-    // Words - Modern clean white
+    // Words
     ctx.fillStyle = "#fff";
-    ctx.font = "600 20px 'Inter', system-ui";
+    ctx.font = "20px system-ui";
     ctx.textAlign = "left";
     for (const word of this.state.words) {
       if (word.cleared) continue;
-      ctx.fillText(word.text.toUpperCase(), word.x, word.y);
+      ctx.fillText(word.text, word.x, word.y);
     }
 
-    // Transcript - Futuristic Blue
+    // Transcript
     if (this.state.lastTranscript) {
-      ctx.fillStyle = "#3b82f6";
-      ctx.font = "italic 16px 'Inter', system-ui";
+      ctx.fillStyle = "#888";
+      ctx.font = "16px system-ui";
       ctx.textAlign = "center";
-      ctx.fillText(`[ ${this.state.lastTranscript.toUpperCase()} ]`, w / 2, h - 40);
+      ctx.fillText(`Hearing: ${this.state.lastTranscript}`, w / 2, h - 30);
     }
   }
 
