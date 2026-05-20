@@ -1,4 +1,4 @@
-# 🎙️ SHOUTDOWN — Voice-Controlled Falling Words Game
+# SHOUTDOWN — Voice-Controlled Falling Words Game
 
 A Z-Type inspired falling-words game where you **shout words** to destroy them before they hit the bottom. Powered by **Deepgram** for ultra-low latency voice recognition and **Groq** for AI-powered word pool generation.
 
@@ -7,7 +7,7 @@ A Z-Type inspired falling-words game where you **shout words** to destroy them b
 ![Deepgram](https://img.shields.io/badge/Deepgram-STT-red)
 ![Groq](https://img.shields.io/badge/Groq-AI-orange)
 
-## 🎮 Features
+## Features
 
 - **Voice-controlled gameplay** — Use your voice to clear words in real-time.
 - **AI Word Generation** — Enter any topic and let **Groq (Llama 3)** generate a relevant word pool for you.
@@ -16,7 +16,7 @@ A Z-Type inspired falling-words game where you **shout words** to destroy them b
 - **Fuzzy Matching** — Smart Levenshtein-based matching handles pronunciation variations and accents.
 - **Progressive Difficulty** — Words spawn faster and fall quicker as your score increases.
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. Prerequisites
 
@@ -49,7 +49,7 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) in **Chrome** or **Edge**.
 
-## 🎯 How to Play
+## How to Play
 
 1.  **Select a Topic** — Enter a topic (e.g., "Space", "Cooking") and click **Generate** to let the AI build your word pool.
 2.  **Start the Game** — Click the **START GAME** button.
@@ -58,7 +58,7 @@ Open [http://localhost:3000](http://localhost:3000) in **Chrome** or **Edge**.
 5.  **Build Combos** — Chain successful clears for bonus multipliers and higher scores.
 6.  **Survival** — You have 5 lives. Each missed word costs 1 life.
 
-## 🏗️ Project Structure
+## Project Structure
 
 ```
 shoutdown/
@@ -76,7 +76,7 @@ shoutdown/
 └── .env                 # API Credentials
 ```
 
-## 🧠 Technical Details
+## Technical Details
 
 ### Deepgram Proxy Server
 To ensure maximum security and performance, voice data is proxied through a custom Node.js server (`server.ts`). This server manages a persistent WebSocket connection to Deepgram, minimizing handshake overhead and keeping API keys hidden from the client.
@@ -87,6 +87,6 @@ The game uses the `llama-3.3-70b-versatile` model on Groq to instantly generate 
 ### Fuzzy Matching
 The engine uses a combination of Levenshtein distance and token-based similarity to ensure that even if the transcription isn't 100% perfect, your clear will still count (configurable threshold).
 
-## 📝 License
+## License
 
-MIT — Created with ❤️ for voice-controlled gaming.
+MIT — Created with for voice-controlled gaming.
